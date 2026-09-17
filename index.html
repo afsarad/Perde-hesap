@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17324d">
+<link rel="manifest" href="manifest.json">
+<title>Perde Hesap</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef2f5;color:#17212b;font-family:Arial,sans-serif}
+header{background:#17324d;color:white;padding:18px 16px 15px;text-align:center}
+h1{font-size:23px;margin:0 0 4px}.sub{font-size:13px;opacity:.86}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #d5dce2;position:sticky;top:0;z-index:5}
+.tab{flex:1;padding:15px 8px;border:0;background:#fff;font-weight:700;font-size:15px;color:#5a6771}
+.tab.active{color:#17324d;border-bottom:3px solid #17324d}
+main{padding:14px;max-width:600px;margin:auto}.card{background:#fff;border-radius:17px;padding:17px;margin-bottom:14px;box-shadow:0 2px 11px #00000010}
+h2{font-size:18px;margin:0 0 12px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:13px;font-weight:700;margin:8px 0 5px}
+input{width:100%;padding:14px;border:1px solid #cbd3da;border-radius:11px;font-size:19px}
+button.calc,button.secondary,button.danger{width:100%;padding:14px;border:0;border-radius:11px;background:#17324d;color:white;font-size:17px;font-weight:700;margin-top:14px}
+button.secondary{background:#65727d;font-size:14px}button.danger{background:#8a3d3d;font-size:14px}
+.result{padding:12px 0;border-bottom:1px solid #e2e7eb;font-weight:700}.result:last-child{border-bottom:0}
+.big{font-size:29px;margin-top:3px}.badge{display:inline-block;background:#edf3f7;border-radius:20px;padding:7px 11px;font-size:13px;font-weight:700;margin-bottom:9px}
+.muted{color:#687680;font-size:13px;line-height:1.5}.note{background:#fff8df;border-radius:11px;padding:11px;font-size:13px;line-height:1.5;margin-top:12px}
+.hidden{display:none}.hist{border-top:1px solid #e2e7eb;padding:12px 0}.hist:first-child{border-top:0}
+.hist b{font-size:15px}.hist small{color:#71808a}.del{float:right;border:0;background:#edf0f2;border-radius:8px;padding:7px 10px}
+.footer{font-size:12px;color:#75818b;text-align:center;padding:5px 0 28px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions button{margin-top:10px}
+</style>
+</head>
+<body>
+<header><h1>Perde Hesap</h1><div class="sub">Honeycumb • Normal Plise</div></header>
+<div class="tabs">
+<button class="tab active" onclick="showTab('honey',this)">HONEYCUMB</button>
+<button class="tab" onclick="showTab('plise',this)">NORMAL PLİSE</button>
+</div>
+<main>
+<section id="honey">
+<div class="card">
+<div class="badge">Honeycumb ip kesimi</div>
+<div class="row">
+<div><label>En (mm)</label><input id="hw" type="number" inputmode="numeric" placeholder="1075"></div>
+<div><label>Boy (mm)</label><input id="hh" type="number" inputmode="numeric" placeholder="1070"></div>
+</div>
+<button class="calc" onclick="calcHoney()">HESAPLA</button>
+</div>
+<div id="hres" class="card hidden"></div>
+</section>
+
+<section id="plise" class="hidden">
+<div class="card">
+<div class="badge">Normal plise — 14 mm</div>
+<label>Perde boyu (mm)</label>
+<input id="ph" type="number" inputmode="numeric" placeholder="1070">
+<button class="calc" onclick="calcPlise()">HESAPLA</button>
+</div>
+<div id="pres" class="card hidden"></div>
+</section>
+
+<div class="card">
+<h2>Hesap geçmişi</h2>
+<div class="muted">Kayıtlar bu cihazda saklanır. İnternet gerekmez.</div>
+<div id="history"></div>
+<div class="actions">
+<button class="secondary" onclick="exportCSV()">CSV dışa aktar</button>
+<button class="secondary" onclick="shareHistory()">Paylaş</button>
+</div>
+<button class="danger" onclick="clearHistory()">Tüm geçmişi sil</button>
+</div>
+
+<div class="card muted">
+<b>Honeycumb:</b> En 600 mm'den küçük → 2 delik; 600 mm ve üzeri → 3 delik. Her perdede 2 U + 2 Z. Kesim ölçüleri kısa gelmemesi için güvenlik paylı ve 100 mm'lik kademeye yukarı yuvarlanır.<br><br>
+<b>Normal plise:</b> Pile sayısı = Boy × 0,045.
+</div>
+<div class="footer">Perde Hesap — pratik üretim yardımcısı</div>
+</main>
+
+<script>
+function up100(x){return Math.ceil(x/100)*100}
+function save(rec){let a=JSON.parse(localStorage.getItem('perdeHistory')||'[]');a.unshift({...rec,date:new Date().toLocaleString('tr-TR')});a=a.slice(0,100);localStorage.setItem('perdeHistory',JSON.stringify(a));renderHistory()}
+function calcHoney(){
+ const w=Number(hw.value),h=Number(hh.value);if(!w||!h){alert('En ve boy ölçüsünü gir.');return}
+ const holes=w<600?2:3;let u,z;
+ if(holes===2){u=6.37614679*w-1.42192325*h;z=7.06422018*w-2.29104798*h}
+ else{u=672.774384+1.91509430*w+0.557099017*h;z=658.692915+0.972960289*w+0.617691065*h}
+ const uc=up100(u+100),zc=up100(z+100);
+ hres.classList.remove('hidden');hres.innerHTML=`<div class="badge">${holes} delik</div>
+ <div class="result">U ipi — 2 adet<div class="big">${uc.toLocaleString('tr-TR')} mm × 2</div></div>
+ <div class="result">Z ipi — 2 adet<div class="big">${zc.toLocaleString('tr-TR')} mm × 2</div></div>
+ <div class="note">Toplam kesilecek ip: ${(2*uc+2*zc).toLocaleString('tr-TR')} mm</div>`;
+ save({tip:'Honeycumb',en:w,boy:h,delik:holes,U:uc,Z:zc});
+}
+function calcPlise(){
+ const h=Number(ph.value);if(!h){alert('Boy ölçüsünü gir.');return}
+ const p=h*0.045;pres.classList.remove('hidden');pres.innerHTML=`<div class="result">Pile sayısı<div class="big">${p.toLocaleString('tr-TR',{maximumFractionDigits:2})}</div></div><div class="note">14 mm normal plise: Boy × 0,045</div>`;
+ save({tip:'Normal plise',boy:h,pile:p});
+}
+function renderHistory(){let a=JSON.parse(localStorage.getItem('perdeHistory')||'[]');history.innerHTML=a.length?a.map((r,i)=>r.tip==='Honeycumb'?`<div class="hist"><button class="del" onclick="delHist(${i})">Sil</button><b>${r.en} × ${r.boy} mm — ${r.delik} delik</b><br>U: ${r.U} mm ×2 &nbsp; Z: ${r.Z} mm ×2<br><small>${r.date}</small></div>`:`<div class="hist"><button class="del" onclick="delHist(${i})">Sil</button><b>Normal plise — ${r.boy} mm</b><br>Pile: ${Number(r.pile).toLocaleString('tr-TR',{maximumFractionDigits:2})}<br><small>${r.date}</small></div>`).join(''):'<div class="muted" style="padding-top:12px">Henüz kayıt yok.</div>'}
+function delHist(i){let a=JSON.parse(localStorage.getItem('perdeHistory')||'[]');a.splice(i,1);localStorage.setItem('perdeHistory',JSON.stringify(a));renderHistory()}
+function clearHistory(){if(confirm('Tüm hesap geçmişi silinsin mi?')){localStorage.removeItem('perdeHistory');renderHistory()}}
+function exportCSV(){let a=JSON.parse(localStorage.getItem('perdeHistory')||'[]');if(!a.length){alert('Dışa aktarılacak kayıt yok.');return}let rows=[['Tarih','Tip','En (mm)','Boy (mm)','Delik','U (mm)','Z (mm)','Pile']];a.forEach(r=>rows.push([r.date,r.tip,r.en||'',r.boy||'',r.delik||'',r.U||'',r.Z||'',r.pile||'']));let csv='\uFEFF'+rows.map(x=>x.map(v=>`"${String(v).replaceAll('"','""')}"`).join(';')).join('\n');let blob=new Blob([csv],{type:'text/csv;charset=utf-8'});let url=URL.createObjectURL(blob);let ael=document.createElement('a');ael.href=url;ael.download='perde_hesap_gecmisi.csv';ael.click();URL.revokeObjectURL(url)}
+async function shareHistory(){let a=JSON.parse(localStorage.getItem('perdeHistory')||'[]');if(!a.length){alert('Paylaşılacak kayıt yok.');return}let text=a.map(r=>r.tip==='Honeycumb'?`${r.en}×${r.boy} — ${r.delik} delik — U ${r.U}×2 — Z ${r.Z}×2`:`Normal plise — Boy ${r.boy} — Pile ${r.pile}`).join('\n');if(navigator.share){await navigator.share({title:'Perde Hesap geçmişi',text})}else{await navigator.clipboard.writeText(text);alert('Geçmiş panoya kopyalandı.')}}
+function showTab(id,btn){document.getElementById('honey').classList.toggle('hidden',id!=='honey');document.getElementById('plise').classList.toggle('hidden',id!=='plise');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
+renderHistory();
+</script>
+</body></html>
